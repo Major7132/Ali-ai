@@ -243,7 +243,6 @@ textarea{
 </div>
 
 <script>
-/* ВСТАВЬ СЮДА СВОИ ДАННЫЕ SUPABASE */
 const SUPABASE_URL = "ВСТАВЬ_SUPABASE_URL";
 const SUPABASE_ANON_KEY = "ВСТАВЬ_SUPABASE_PUBLISHABLE_KEY";
 
@@ -284,11 +283,8 @@ async function saveCloud(c){
  try{
   if(!c.cloudId)c.cloudId=uuid();
   const result=await supabase.from("chats").upsert({
-   id:c.cloudId,
-   user_id:user.id,
-   title:c.title||"Новый чат",
-   messages:c.messages||[],
-   updated_at:new Date().toISOString()
+   id:c.cloudId,user_id:user.id,title:c.title||"Новый чат",
+   messages:c.messages||[],updated_at:new Date().toISOString()
   },{onConflict:"id"});
   if(result.error)throw result.error;
   saveLocal();
@@ -308,26 +304,17 @@ async function syncAllChats(){
  const localChats=[...chats];
  const {data,error}=await supabase.from("chats")
   .select("id,title,messages,created_at,updated_at")
-  .eq("user_id",user.id)
-  .order("updated_at",{ascending:false});
- if(error){
-  alert("Не удалось загрузить чаты: "+error.message);
-  return;
- }
+  .eq("user_id",user.id).order("updated_at",{ascending:false});
+ if(error){alert("Не удалось загрузить чаты: "+error.message);return}
  const cloudChats=(data||[]).map(row=>({
-  id:row.id,
-  cloudId:row.id,
-  title:row.title||"Новый чат",
-  messages:row.messages||[],
-  created:new Date(row.created_at).getTime()||Date.now()
+  id:row.id,cloudId:row.id,title:row.title||"Новый чат",
+  messages:row.messages||[],created:new Date(row.created_at).getTime()||Date.now()
  }));
  const cloudIds=new Set(cloudChats.map(c=>c.cloudId));
  const localOnly=localChats.filter(c=>!c.cloudId||!cloudIds.has(c.cloudId));
  chats=[...cloudChats,...localOnly];
  activeId=chats[0]?.id||null;
- cloudReady=true;
- saveLocal();
- renderAll();
+ cloudReady=true;saveLocal();renderAll();
  for(const c of localOnly)await saveCloud(c);
 }
 function migrate(){
@@ -335,74 +322,53 @@ function migrate(){
   const old=JSON.parse(localStorage.getItem(OLDKEY)||"[]");
   if(!Array.isArray(old)||!old.length)return;
   chats=old.map((c,i)=>({
-   id:uid()+i,
-   title:c.title||c.name||"Старый чат",
+   id:uid()+i,title:c.title||c.name||"Старый чат",
    messages:(c.messages||c.history||[]).map(m=>({
     role:m.role==="model"||m.role==="assistant"?"model":"user",
     parts:m.parts||[{text:m.text||m.content||""}]
-   })),
-   created:Date.now()-i
+   })),created:Date.now()-i
   }));
   saveLocal();
  }catch(e){}
 }
 function load(){
- try{
-  chats=JSON.parse(localStorage.getItem(KEY)||"[]");
-  if(!Array.isArray(chats))chats=[];
- }catch(e){chats=[]}
+ try{chats=JSON.parse(localStorage.getItem(KEY)||"[]");if(!Array.isArray(chats))chats=[]}
+ catch(e){chats=[]}
  if(!chats.length)migrate();
  activeId=chats[0]?.id||null;
 }
 function createChat(){
  const c={id:uid(),title:"Новый чат",messages:[],created:Date.now()};
- chats.unshift(c);
- activeId=c.id;
- save();
- renderAll();
- closeSidebar();
- $("input").focus();
+ chats.unshift(c);activeId=c.id;save();renderAll();closeSidebar();$("input").focus();
 }
 function renderList(){
- const list=$("chatlist");
- list.innerHTML="";
+ const list=$("chatlist");list.innerHTML="";
  const q=$("search").value.toLowerCase();
  chats.filter(c=>(c.title||"").toLowerCase().includes(q)).forEach(c=>{
   const item=document.createElement("div");
   item.className="chatitem"+(c.id===activeId?" active":"");
   const name=document.createElement("div");
-  name.className="chatname";
-  name.textContent=c.title;
+  name.className="chatname";name.textContent=c.title;
   name.onclick=()=>{activeId=c.id;renderAll();closeSidebar()};
   const rename=document.createElement("button");
-  rename.textContent="✎";
-  rename.title="Переименовать";
+  rename.textContent="✎";rename.title="Переименовать";
   rename.onclick=async()=>{
    const t=prompt("Название чата:",c.title);
-   if(t&&t.trim()){
-    c.title=t.trim();saveLocal();
-    if(user&&cloudReady)await saveCloud(c);
-    renderList();
-   }
+   if(t&&t.trim()){c.title=t.trim();saveLocal();if(user&&cloudReady)await saveCloud(c);renderList()}
   };
   const del=document.createElement("button");
-  del.textContent="×";
-  del.title="Удалить";
+  del.textContent="×";del.title="Удалить";
   del.onclick=async()=>{
    if(!confirm("Удалить этот чат?"))return;
-   chats=chats.filter(x=>x.id!==c.id);
-   await deleteCloud(c);
+   chats=chats.filter(x=>x.id!==c.id);await deleteCloud(c);
    if(activeId===c.id)activeId=chats[0]?.id||null;
    saveLocal();renderAll();
   };
-  item.append(name,rename,del);
-  list.appendChild(item);
+  item.append(name,rename,del);list.appendChild(item);
  });
 }
 function escapeHTML(s){
- return String(s).replace(/[&<>"']/g,c=>({
- "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
- }[c]));
+ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 function simpleMarkdown(text){
  let s=escapeHTML(text);
@@ -410,72 +376,53 @@ function simpleMarkdown(text){
  s=s.replace(/`([^`]+)`/g,"<code>$1</code>");
  s=s.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
  s=s.replace(/\*([^*]+)\*/g,"<i>$1</i>");
- s=s.replace(/\n/g,"<br>");
- return s;
+ return s.replace(/\n/g,"<br>");
 }
 function renderMessages(){
- const inner=$("inner");
- inner.innerHTML="";
+ const inner=$("inner");inner.innerHTML="";
  const c=current();
  if(!c||!c.messages.length){
-  const w=document.createElement("div");
-  w.className="welcome";
-  w.innerHTML=`
-   <div class="welcomeLogo">A</div>
-   <h1>Чем могу помочь?</h1>
-   <p>Я ALISH AI. Напиши вопрос или отправь изображение.</p>
-   <div class="suggestions">
-    <button class="suggestion">Объясни сложную тему</button>
-    <button class="suggestion">Придумай идею</button>
-    <button class="suggestion">Напиши текст</button>
-   </div>`;
+  const w=document.createElement("div");w.className="welcome";
+  w.innerHTML=`<div class="welcomeLogo">A</div><h1>Чем могу помочь?</h1><p>Я ALISH AI. Напиши вопрос или отправь изображение.</p><div class="suggestions"><button class="suggestion">Объясни сложную тему</button><button class="suggestion">Придумай идею</button><button class="suggestion">Напиши текст</button></div>`;
   inner.appendChild(w);
-  w.querySelectorAll(".suggestion").forEach(b=>{
-   b.onclick=()=>{$("input").value=b.textContent;$("input").focus()}
-  });
+  w.querySelectorAll(".suggestion").forEach(b=>{b.onclick=()=>{$("input").value=b.textContent;$("input").focus()}});
   return;
  }
  c.messages.forEach(m=>{
   const row=document.createElement("div");
   row.className="message "+(m.role==="user"?"user":"model");
-  const bubble=document.createElement("div");
-  bubble.className="bubble";
+  const bubble=document.createElement("div");bubble.className="bubble";
   (m.parts||[]).forEach(p=>{
-   if(p.text){
-    const d=document.createElement("div");
-    d.innerHTML=simpleMarkdown(p.text);
-    bubble.appendChild(d);
-   }
-   if(p.inlineData){
-    const img=document.createElement("img");
-    img.src="data:"+p.inlineData.mimeType+";base64,"+p.inlineData.data;
-    bubble.appendChild(img);
-   }
-   if(p.image){
-    const img=document.createElement("img");
-    img.src=p.image;
-    bubble.appendChild(img);
-   }
+   if(p.text){const d=document.createElement("div");d.innerHTML=simpleMarkdown(p.text);bubble.appendChild(d)}
+   if(p.inlineData){const img=document.createElement("img");img.src="data:"+p.inlineData.mimeType+";base64,"+p.inlineData.data;bubble.appendChild(img)}
+   if(p.image){const img=document.createElement("img");img.src=p.image;bubble.appendChild(img)}
   });
-  row.appendChild(bubble);
-  inner.appendChild(row);
+  row.appendChild(bubble);inner.appendChild(row);
  });
  $("messages").scrollTop=$("messages").scrollHeight;
 }
 function renderAll(){renderList();renderMessages()}
+
+/* ИСПРАВЛЕННОЕ ОТКРЫТИЕ И ЗАКРЫТИЕ ПАНЕЛИ */
 function closeSidebar(){
  $("sidebar").classList.remove("open");
  $("overlay").classList.remove("show");
 }
-$("menuBtn").onclick=()=>{
- $("sidebar").classList.toggle("open");
- $("overlay").classList.toggle("show");
-};
+function toggleSidebar(){
+ const isOpen=$("sidebar").classList.contains("open");
+ if(isOpen)closeSidebar();
+ else{
+  $("sidebar").classList.add("open");
+  $("overlay").classList.add("show");
+ }
+}
+$("menuBtn").onclick=toggleSidebar;
 $("overlay").onclick=closeSidebar;
 $("newChat").onclick=createChat;
 $("topNew").onclick=createChat;
-$("search").oninput=renderList;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSidebar()});
 
+$("search").oninput=renderList;
 $("themeBtn").onclick=()=>{
  document.body.classList.toggle("light");
  localStorage.setItem("alish_theme",document.body.classList.contains("light")?"light":"dark");
@@ -495,13 +442,9 @@ $("fileInput").onchange=async e=>{
  const files=[...e.target.files];
  for(const file of files){
   if(!file.type.startsWith("image/"))continue;
-  if(file.size>5*1024*1024){
-   alert("Фото больше 5 МБ. Выбери фото поменьше.");continue;
-  }
+  if(file.size>5*1024*1024){alert("Фото больше 5 МБ. Выбери фото поменьше.");continue}
   const data=await new Promise(resolve=>{
-   const reader=new FileReader();
-   reader.onload=()=>resolve(reader.result);
-   reader.readAsDataURL(file);
+   const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.readAsDataURL(file);
   });
   pendingImages.push({data,mime:file.type});
  }
@@ -510,8 +453,7 @@ $("fileInput").onchange=async e=>{
 function renderPreview(){
  const box=$("preview");box.innerHTML="";
  pendingImages.forEach((im,i)=>{
-  const item=document.createElement("div");
-  item.className="previewitem";
+  const item=document.createElement("div");item.className="previewitem";
   const img=document.createElement("img");img.src=im.data;
   const btn=document.createElement("button");btn.textContent="×";
   btn.onclick=()=>{pendingImages.splice(i,1);renderPreview()};
@@ -519,13 +461,10 @@ function renderPreview(){
  });
 }
 function resizeInput(){
- const t=$("input");t.style.height="auto";
- t.style.height=Math.min(t.scrollHeight,160)+"px";
+ const t=$("input");t.style.height="auto";t.style.height=Math.min(t.scrollHeight,160)+"px";
 }
 $("input").oninput=resizeInput;
-$("input").onkeydown=e=>{
- if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage()}
-};
+$("input").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage()}};
 function titleFrom(text){return text.trim().slice(0,40)||"Новый чат"}
 
 async function sendMessage(){
@@ -533,24 +472,17 @@ async function sendMessage(){
  const text=$("input").value.trim();
  if(!text&&!pendingImages.length)return;
  if(!current())createChat();
- const c=current();
- const parts=[];
+ const c=current();const parts=[];
  if(text)parts.push({text});
- pendingImages.forEach(im=>{
-  parts.push({inlineData:{mimeType:im.mime,data:im.data.split(",")[1]}});
- });
+ pendingImages.forEach(im=>parts.push({inlineData:{mimeType:im.mime,data:im.data.split(",")[1]}}));
  c.messages.push({role:"user",parts});
  if(c.messages.length===1)c.title=titleFrom(text||"Изображение");
  const imgs=pendingImages.map(im=>({image:im.data}));
  c.messages[c.messages.length-1].parts=[...(text?[{text}]:[]),...imgs];
- $("input").value="";resizeInput();
- pendingImages=[];renderPreview();
- saveLocal();renderAll();
- busy=true;$("send").disabled=true;
- const typing=document.createElement("div");
- typing.className="typing";typing.id="typing";
- typing.textContent="ALISH AI думает...";
- $("inner").appendChild(typing);
+ $("input").value="";resizeInput();pendingImages=[];renderPreview();
+ saveLocal();renderAll();busy=true;$("send").disabled=true;
+ const typing=document.createElement("div");typing.className="typing";typing.id="typing";
+ typing.textContent="ALISH AI думает...";$("inner").appendChild(typing);
  $("messages").scrollTop=$("messages").scrollHeight;
  try{
   const contents=c.messages.slice(-12).map(m=>({
@@ -558,16 +490,12 @@ async function sendMessage(){
    parts:(m.parts||[]).map(p=>{
     if(p.text)return {text:p.text};
     if(p.inlineData)return {inlineData:p.inlineData};
-    if(p.image)return {inlineData:{
-     mimeType:p.image.split(";")[0].split(":")[1],
-     data:p.image.split(",")[1]
-    }};
+    if(p.image)return {inlineData:{mimeType:p.image.split(";")[0].split(":")[1],data:p.image.split(",")[1]}};
     return {text:""};
    })
   }));
   const response=await fetch("/.netlify/functions/chat",{
-   method:"POST",headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({contents})
+   method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents})
   });
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||"Ошибка сервера");
@@ -576,129 +504,87 @@ async function sendMessage(){
  }catch(err){
   c.messages.push({role:"model",parts:[{text:"Ошибка: "+err.message+"\nПопробуй отправить сообщение ещё раз."}]});
  }
- busy=false;$("send").disabled=false;
- saveLocal();
+ busy=false;$("send").disabled=false;saveLocal();
  if(user&&cloudReady)await saveCloud(c);
  renderAll();$("input").focus();
 }
 
 /* Авторизация Supabase */
-function showAuthMessage(message){
- $("authMessage").textContent=message||"";
-}
-function openAuth(){
- $("authModal").classList.add("show");
- showAuthMessage("");
- updateAuthModal();
-}
+function showAuthMessage(message){$("authMessage").textContent=message||""}
+function openAuth(){$("authModal").classList.add("show");showAuthMessage("");updateAuthModal()}
 function closeAuth(){$("authModal").classList.remove("show")}
 function updateAuthModal(){
  if(user){
   $("authTitle").textContent="Твой аккаунт";
   $("authSubtitle").textContent=user.email||"Ты вошёл в ALISH AI";
-  $("authEmail").style.display="none";
-  $("authPassword").style.display="none";
-  $("authSubmit").style.display="none";
-  $("authSwitch").style.display="none";
+  $("authEmail").style.display="none";$("authPassword").style.display="none";
+  $("authSubmit").style.display="none";$("authSwitch").style.display="none";
   $("authLogout").style.display="block";
   $("authMessage").textContent=userRole==="admin"?"Роль: администратор":"Роль: пользователь";
  }else{
   $("authTitle").textContent=authMode==="login"?"Вход в ALISH AI":"Регистрация";
   $("authSubtitle").textContent=authMode==="login"?"Войди, чтобы сохранять свои чаты.":"Создай аккаунт для личной истории чатов.";
-  $("authEmail").style.display="block";
-  $("authPassword").style.display="block";
-  $("authSubmit").style.display="block";
-  $("authSwitch").style.display="block";
+  $("authEmail").style.display="block";$("authPassword").style.display="block";
+  $("authSubmit").style.display="block";$("authSwitch").style.display="block";
   $("authLogout").style.display="none";
   $("authSubmit").textContent=authMode==="login"?"Войти":"Создать аккаунт";
   $("authSwitch").textContent=authMode==="login"?"Создать аккаунт":"У меня уже есть аккаунт";
  }
 }
 function renderAccount(){
- $("accountStatus").textContent=user
-  ? "Вошёл: "+user.email
-  : "Гостевой режим — чаты на этом устройстве";
+ $("accountStatus").textContent=user?"Вошёл: "+user.email:"Гостевой режим — чаты на этом устройстве";
  $("accountBtn").textContent=user?"👤　Мой аккаунт":"👤　Войти / Регистрация";
 }
 $("accountBtn").onclick=openAuth;
 $("authClose").onclick=closeAuth;
 $("authModal").onclick=e=>{if(e.target===$("authModal"))closeAuth()};
-$("authSwitch").onclick=()=>{
- authMode=authMode==="login"?"signup":"login";
- showAuthMessage("");updateAuthModal();
-};
+$("authSwitch").onclick=()=>{authMode=authMode==="login"?"signup":"login";showAuthMessage("");updateAuthModal()};
 $("authSubmit").onclick=async()=>{
- const email=$("authEmail").value.trim();
- const password=$("authPassword").value;
+ const email=$("authEmail").value.trim();const password=$("authPassword").value;
  if(!email||!password){showAuthMessage("Введи почту и пароль.");return}
  if(password.length<6){showAuthMessage("Пароль должен содержать минимум 6 символов.");return}
- $("authSubmit").disabled=true;
- showAuthMessage("Подожди...");
+ $("authSubmit").disabled=true;showAuthMessage("Подожди...");
  try{
   if(authMode==="signup"){
    const {data,error}=await supabase.auth.signUp({email,password});
    if(error)throw error;
-   if(data.session){
-    user=data.user;
-    await afterLogin();
-    showAuthMessage("Аккаунт создан. Ты вошёл!");
-   }else{
-    showAuthMessage("Аккаунт создан! Проверь почту и подтверди регистрацию, затем войди.");
-    authMode="login";updateAuthModal();
-   }
+   if(data.session){user=data.user;await afterLogin();showAuthMessage("Аккаунт создан. Ты вошёл!")}
+   else{showAuthMessage("Аккаунт создан! Проверь почту и подтверди регистрацию, затем войди.");authMode="login";updateAuthModal()}
   }else{
    const {data,error}=await supabase.auth.signInWithPassword({email,password});
    if(error)throw error;
-   user=data.user;
-   await afterLogin();
-   showAuthMessage("Ты успешно вошёл!");
+   user=data.user;await afterLogin();showAuthMessage("Ты успешно вошёл!");
   }
  }catch(e){showAuthMessage("Ошибка: "+e.message)}
  $("authSubmit").disabled=false;
 };
 async function afterLogin(){
  cloudReady=false;
- const {data:roleData}=await supabase.from("user_roles")
-  .select("role").eq("user_id",user.id).maybeSingle();
+ const {data:roleData}=await supabase.from("user_roles").select("role").eq("user_id",user.id).maybeSingle();
  userRole=roleData?.role||"user";
- await syncAllChats();
- renderAccount();updateAuthModal();
+ await syncAllChats();renderAccount();updateAuthModal();
 }
 $("authLogout").onclick=async()=>{
- await supabase.auth.signOut();
- user=null;userRole="user";cloudReady=false;
- chats=[];activeId=null;
- localStorage.removeItem(KEY);
- renderAll();renderAccount();closeAuth();
+ await supabase.auth.signOut();user=null;userRole="user";cloudReady=false;
+ chats=[];activeId=null;localStorage.removeItem(KEY);renderAll();renderAccount();closeAuth();
 };
 async function initAuth(){
  const {data,error}=await supabase.auth.getSession();
  if(error)console.error(error);
- if(data?.session?.user){
-  user=data.session.user;
-  await afterLogin();
- }else{
-  renderAccount();
- }
+ if(data?.session?.user){user=data.session.user;await afterLogin()}
+ else{renderAccount()}
  supabase.auth.onAuthStateChange((event,session)=>{
   if(event==="SIGNED_OUT"){
-   user=null;userRole="user";cloudReady=false;
-   chats=[];activeId=null;localStorage.removeItem(KEY);
-   renderAll();renderAccount();
+   user=null;userRole="user";cloudReady=false;chats=[];activeId=null;
+   localStorage.removeItem(KEY);renderAll();renderAccount();
   }
  });
 }
-
 $("send").onclick=sendMessage;
 
-load();
-renderAll();
+load();renderAll();
 
-if(
- SUPABASE_URL.startsWith("https://")&&
- SUPABASE_ANON_KEY.length>20&&
- window.supabase
-){
+if(SUPABASE_URL.startsWith("https://")&&SUPABASE_ANON_KEY.length>20&&window.supabase){
  supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
  initAuth();
 }else{
