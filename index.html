@@ -1,136 +1,536 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#090b12">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101014">
 <title>ALISH AI</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#090b12;color:#f4f4f5;font:16px Arial,sans-serif;height:100dvh;display:flex;flex-direction:column}
-header{padding:16px;background:#111521;border-bottom:1px solid #252b3b;display:flex;justify-content:space-between;align-items:center}
-.logo{font-size:21px;font-weight:bold;color:#9b8cff}
-button{background:#7657ee;color:white;border:0;border-radius:12px;padding:11px 15px;font-size:14px;cursor:pointer}
-#messages{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
-.msg{padding:13px 15px;border-radius:16px;max-width:88%;white-space:pre-wrap;line-height:1.5;overflow-wrap:anywhere}
-.user{background:#5842b8;align-self:flex-end}
-.ai{background:#171d2b;align-self:flex-start}
-.error{color:#ff8585}
-footer{padding:12px;background:#111521;border-top:1px solid #252b3b}
-#form{display:flex;gap:8px}
-textarea{flex:1;resize:none;background:#202638;color:white;border:1px solid #333c50;border-radius:14px;padding:13px;font:16px Arial;min-height:48px;max-height:130px;outline:none}
-#preview{max-width:100px;max-height:100px;border-radius:10px;margin:5px}
-.tools{display:flex;gap:8px;margin-bottom:9px;align-items:center}
-.tools button{background:#252d40}
-#file{display:none}
-small{color:#9099ad}
+:root{
+ --bg:#101014;--panel:#19191f;--panel2:#22222a;
+ --text:#f5f5f7;--muted:#9999a5;--border:#303039;
+ --accent:#a8ee32;--user:#282831;
+}
+body.light{
+ --bg:#f5f5f7;--panel:#fff;--panel2:#ececf1;
+ --text:#202027;--muted:#777783;--border:#dedee5;
+ --accent:#79b900;--user:#e9e9f0;
+}
+body{
+ margin:0;background:var(--bg);color:var(--text);
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ height:100dvh;overflow:hidden;
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer;color:var(--text)}
+#app{height:100dvh;display:flex}
+.sidebar{
+ width:280px;background:var(--panel);border-right:1px solid var(--border);
+ display:flex;flex-direction:column;padding:14px;flex-shrink:0;
+}
+.brand{display:flex;align-items:center;gap:10px;padding:10px 4px 20px}
+.logo{
+ width:40px;height:40px;border-radius:14px;background:var(--accent);
+ color:#171717;display:grid;place-items:center;font-weight:900;font-size:23px;
+}
+.brandname{font-size:20px;font-weight:750}
+.newchat{
+ border:0;background:var(--panel2);border-radius:14px;padding:13px;
+ text-align:left;margin-bottom:12px;
+}
+.search{
+ width:100%;background:var(--bg);border:1px solid var(--border);
+ border-radius:12px;padding:11px;color:var(--text);outline:none;
+ margin-bottom:12px;
+}
+.chatlist{overflow-y:auto;flex:1}
+.chatitem{
+ display:flex;align-items:center;gap:7px;border-radius:12px;
+ padding:10px;margin-bottom:4px;
+}
+.chatitem.active{background:var(--panel2)}
+.chatname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.chatitem button{
+ border:0;background:transparent;color:var(--muted);
+ padding:3px;font-size:18px;
+}
+.sidebarbottom{border-top:1px solid var(--border);padding-top:10px}
+.sidebutton{
+ width:100%;border:0;background:transparent;text-align:left;
+ padding:12px;border-radius:10px;
+}
+.sidebutton:hover,.chatitem:hover{background:var(--panel2)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+ height:60px;display:flex;align-items:center;gap:10px;
+ padding:0 15px;border-bottom:1px solid var(--border);
+}
+.menubtn{
+ border:0;background:transparent;font-size:23px;padding:7px;
+}
+.topname{font-weight:700;flex:1}
+.topbtn{border:1px solid var(--border);background:var(--panel);
+ border-radius:12px;padding:9px 12px}
+.messages{
+ flex:1;overflow-y:auto;padding:22px 16px;
+ scroll-behavior:smooth;
+}
+.inner{max-width:780px;margin:auto;width:100%}
+.welcome{
+ text-align:center;margin:13vh auto 20px;
+}
+.welcomeLogo{
+ width:66px;height:66px;border-radius:23px;background:var(--accent);
+ color:#171717;font-size:37px;font-weight:900;
+ display:grid;place-items:center;margin:0 auto 20px;
+}
+.welcome h1{font-size:28px;margin:0 0 10px}
+.welcome p{color:var(--muted)}
+.suggestions{
+ display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:24px
+}
+.suggestion{
+ background:var(--panel);border:1px solid var(--border);
+ border-radius:14px;padding:12px;font-size:14px;
+}
+.message{display:flex;margin:15px 0;gap:10px}
+.message.user{justify-content:flex-end}
+.bubble{
+ max-width:90%;padding:13px 15px;border-radius:18px;
+ line-height:1.55;overflow-wrap:anywhere;
+}
+.user .bubble{background:var(--user);border-radius:18px 18px 5px 18px}
+.model .bubble{background:transparent;padding-left:2px}
+.bubble img{max-width:240px;max-height:300px;border-radius:12px;display:block;margin:8px 0}
+.bubble pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel2);padding:12px;border-radius:10px}
+.bubble code{background:var(--panel2);padding:2px 4px;border-radius:4px}
+.bubble a{color:var(--accent)}
+.typing{color:var(--muted);padding:10px}
+.composerwrap{padding:10px 14px 14px}
+.composer{max-width:780px;margin:auto;background:var(--panel);
+ border:1px solid var(--border);border-radius:22px;padding:10px}
+.preview{display:flex;gap:8px;flex-wrap:wrap;padding:4px}
+.previewitem{position:relative}
+.previewitem img{height:70px;width:70px;object-fit:cover;border-radius:10px}
+.previewitem button{
+ position:absolute;top:-5px;right:-5px;border:0;border-radius:50%;
+ background:#444;color:white;width:22px;height:22px;
+}
+textarea{
+ width:100%;resize:none;border:0;outline:0;background:transparent;
+ color:var(--text);padding:9px;font-size:16px;max-height:160px;
+}
+.composerbottom{display:flex;align-items:center;gap:8px}
+.toolbtn{
+ border:0;background:var(--panel2);width:40px;height:40px;
+ border-radius:13px;font-size:20px;display:grid;place-items:center;
+}
+.sendbtn{background:var(--accent);color:#171717;font-weight:800}
+.sendbtn:disabled{opacity:.4}
+.disclaimer{text-align:center;color:var(--muted);font-size:11px;padding-top:8px}
+#fileInput{display:none}
+.overlay{display:none}
+@media(max-width:700px){
+ .sidebar{position:fixed;z-index:5;top:0;bottom:0;left:0;
+ transform:translateX(-105%);transition:transform .2s;width:290px}
+ .sidebar.open{transform:translateX(0)}
+ .overlay.show{display:block;position:fixed;inset:0;background:#0008;z-index:4}
+ .topbar{height:54px}
+ .messages{padding:14px 12px}
+ .welcome{margin-top:10vh}
+ .welcome h1{font-size:25px}
+ .bubble{max-width:95%}
+ .composerwrap{padding:7px 9px 10px}
+}
 </style>
 </head>
+
 <body>
-<header>
- <div class="logo">✦ ALISH AI</div>
- <button onclick="clearChat()">Новый чат</button>
-</header>
+<div id="app">
 
-<div id="messages"></div>
+<div class="overlay" id="overlay"></div>
 
-<footer>
- <div class="tools">
-  <button onclick="document.getElementById('file').click()">📎 Фото</button>
-  <button onclick="changeTheme()">🎨 Тема</button>
-  <button onclick="clearChat()">🗑 Очистить</button>
-  <input id="file" type="file" accept="image/jpeg,image/png,image/webp">
-  <small id="status">Готов к общению</small>
+<aside class="sidebar" id="sidebar">
+ <div class="brand">
+  <div class="logo">A</div>
+  <div class="brandname">ALISH AI</div>
  </div>
- <img id="preview" hidden>
- <form id="form">
-  <textarea id="input" placeholder="Напиши сообщение..." rows="1"></textarea>
-  <button type="submit" id="send">➤</button>
- </form>
-</footer>
+
+ <button class="newchat" id="newChat">＋　Новый чат</button>
+ <input class="search" id="search" placeholder="Поиск чатов">
+
+ <div class="chatlist" id="chatlist"></div>
+
+ <div class="sidebarbottom">
+  <button class="sidebutton" id="themeBtn">🌙　Тема</button>
+  <button class="sidebutton" id="clearBtn">🗑　Удалить все чаты</button>
+ </div>
+</aside>
+
+<main class="main">
+ <header class="topbar">
+  <button class="menubtn" id="menuBtn">☰</button>
+  <div class="topname">ALISH AI</div>
+  <button class="topbtn" id="topNew">＋</button>
+ </header>
+
+ <section class="messages" id="messages">
+  <div class="inner" id="inner"></div>
+ </section>
+
+ <div class="composerwrap">
+  <div class="composer">
+   <div class="preview" id="preview"></div>
+   <textarea id="input" rows="1" placeholder="Напиши ALISH AI..."></textarea>
+   <div class="composerbottom">
+    <button class="toolbtn" id="attach" title="Добавить фото">＋</button>
+    <input type="file" id="fileInput" accept="image/*" multiple>
+    <div style="flex:1"></div>
+    <button class="toolbtn sendbtn" id="send" title="Отправить">↑</button>
+   </div>
+  </div>
+  <div class="disclaimer">ALISH AI может ошибаться. Проверяй важную информацию.</div>
+ </div>
+</main>
+</div>
 
 <script>
-const messages=document.getElementById('messages');
-const input=document.getElementById('input');
-const fileInput=document.getElementById('file');
-const preview=document.getElementById('preview');
-const statusText=document.getElementById('status');
-let chats=JSON.parse(localStorage.getItem('alish_ai_chats_v2')||'[]');
-let selectedImage=null;
+const $=id=>document.getElementById(id);
+const KEY="alish_ai_chat_sessions_v3";
+const OLDKEY="alish_ai_chats_v2";
 
-function save(){localStorage.setItem('alish_ai_chats_v2',JSON.stringify(chats))}
-function render(){
- messages.innerHTML='';
- chats.forEach(m=>{
-  const div=document.createElement('div');
-  div.className='msg '+(m.role==='user'?'user':'ai')+(m.error?' error':'');
-  div.textContent=m.text;
-  if(m.image){
-   const img=document.createElement('img');
-   img.src=m.image;img.style.maxWidth='200px';img.style.display='block';img.style.marginTop='8px';img.style.borderRadius='10px';
-   div.appendChild(img);
-  }
-  messages.appendChild(div);
+let chats=[];
+let activeId=null;
+let pendingImages=[];
+let busy=false;
+
+function uid(){
+ return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+}
+
+function save(){
+ try{localStorage.setItem(KEY,JSON.stringify(chats))}
+ catch(e){alert("Не хватает памяти для сохранения чатов. Удали старые фото.")}
+}
+
+function current(){
+ return chats.find(c=>c.id===activeId);
+}
+
+function migrate(){
+ try{
+  const old=JSON.parse(localStorage.getItem(OLDKEY)||"[]");
+  if(!Array.isArray(old)||!old.length)return;
+  chats=old.map((c,i)=>({
+   id:uid()+i,
+   title:c.title||c.name||"Старый чат",
+   messages:(c.messages||c.history||[]).map(m=>({
+    role:m.role==="model"||m.role==="assistant"?"model":"user",
+    parts:m.parts||[{text:m.text||m.content||""}]
+   })),
+   created:Date.now()-i
+  }));
+  save();
+ }catch(e){}
+}
+
+function load(){
+ try{
+  chats=JSON.parse(localStorage.getItem(KEY)||"[]");
+  if(!Array.isArray(chats))chats=[];
+ }catch(e){chats=[]}
+ if(!chats.length)migrate();
+ activeId=chats[0]?.id||null;
+}
+
+function createChat(){
+ const c={id:uid(),title:"Новый чат",messages:[],created:Date.now()};
+ chats.unshift(c);
+ activeId=c.id;
+ save();
+ renderAll();
+ closeSidebar();
+ $("input").focus();
+}
+
+function renderList(){
+ const list=$("chatlist");
+ list.innerHTML="";
+ const q=$("search").value.toLowerCase();
+ chats.filter(c=>c.title.toLowerCase().includes(q)).forEach(c=>{
+  const item=document.createElement("div");
+  item.className="chatitem"+(c.id===activeId?" active":"");
+
+  const name=document.createElement("div");
+  name.className="chatname";
+  name.textContent=c.title;
+  name.onclick=()=>{activeId=c.id;renderAll();closeSidebar()};
+
+  const rename=document.createElement("button");
+  rename.textContent="✎";
+  rename.title="Переименовать";
+  rename.onclick=()=>{
+   const t=prompt("Название чата:",c.title);
+   if(t&&t.trim()){c.title=t.trim();save();renderList()}
+  };
+
+  const del=document.createElement("button");
+  del.textContent="×";
+  del.title="Удалить";
+  del.onclick=()=>{
+   if(!confirm("Удалить этот чат?"))return;
+   chats=chats.filter(x=>x.id!==c.id);
+   if(activeId===c.id)activeId=chats[0]?.id||null;
+   save();renderAll();
+  };
+
+  item.append(name,rename,del);
+  list.appendChild(item);
  });
- messages.scrollTop=messages.scrollHeight;
 }
-function add(role,text,image=null,error=false){
- chats.push({role,text,image,error});save();render();
-}
-function clearChat(){if(confirm('Очистить переписку?')){chats=[];save();render()}}
-function changeTheme(){
- const light=document.body.dataset.light!=='1';
- document.body.dataset.light=light?'1':'0';
- document.body.style.background=light?'#f1f2f7':'#090b12';
- document.body.style.color=light?'#171923':'#f4f4f5';
- messages.querySelectorAll('.ai').forEach(x=>x.style.background=light?'#fff':'#171d2b');
- localStorage.setItem('alish_light',light?'1':'0');
-}
-if(localStorage.getItem('alish_light')==='1')changeTheme();
 
-fileInput.onchange=()=>{
- const f=fileInput.files[0];if(!f)return;
- if(f.size>4*1024*1024){alert('Фото должно быть меньше 4 МБ');return}
- const reader=new FileReader();
- reader.onload=()=>{selectedImage=reader.result;preview.src=selectedImage;preview.hidden=false};
- reader.readAsDataURL(f);
+function escapeHTML(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function simpleMarkdown(text){
+ let s=escapeHTML(text);
+ s=s.replace(/```([\s\S]*?)```/g,"<pre>$1</pre>");
+ s=s.replace(/`([^`]+)`/g,"<code>$1</code>");
+ s=s.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
+ s=s.replace(/\*([^*]+)\*/g,"<i>$1</i>");
+ s=s.replace(/\n/g,"<br>");
+ return s;
+}
+
+function renderMessages(){
+ const inner=$("inner");
+ inner.innerHTML="";
+ const c=current();
+
+ if(!c||!c.messages.length){
+  const w=document.createElement("div");
+  w.className="welcome";
+  w.innerHTML=`
+   <div class="welcomeLogo">A</div>
+   <h1>Чем могу помочь?</h1>
+   <p>Я ALISH AI. Напиши вопрос или отправь изображение.</p>
+   <div class="suggestions">
+    <button class="suggestion">Объясни сложную тему</button>
+    <button class="suggestion">Придумай идею</button>
+    <button class="suggestion">Напиши текст</button>
+   </div>`;
+  inner.appendChild(w);
+  w.querySelectorAll(".suggestion").forEach(b=>{
+   b.onclick=()=>{$("input").value=b.textContent;$("input").focus()}
+  });
+  return;
+ }
+
+ c.messages.forEach(m=>{
+  const row=document.createElement("div");
+  row.className="message "+(m.role==="user"?"user":"model");
+  const bubble=document.createElement("div");
+  bubble.className="bubble";
+
+  (m.parts||[]).forEach(p=>{
+   if(p.text){
+    const d=document.createElement("div");
+    d.innerHTML=simpleMarkdown(p.text);
+    bubble.appendChild(d);
+   }
+   if(p.inlineData){
+    const img=document.createElement("img");
+    img.src="data:"+p.inlineData.mimeType+";base64,"+p.inlineData.data;
+    bubble.appendChild(img);
+   }
+   if(p.image){
+    const img=document.createElement("img");
+    img.src=p.image;
+    bubble.appendChild(img);
+   }
+  });
+
+  row.appendChild(bubble);
+  inner.appendChild(row);
+ });
+ $("messages").scrollTop=$("messages").scrollHeight;
+}
+
+function renderAll(){
+ renderList();
+ renderMessages();
+}
+
+function closeSidebar(){
+ $("sidebar").classList.remove("open");
+ $("overlay").classList.remove("show");
+}
+
+$("menuBtn").onclick=()=>{
+ $("sidebar").classList.toggle("open");
+ $("overlay").classList.toggle("show");
+};
+$("overlay").onclick=closeSidebar;
+$("newChat").onclick=createChat;
+$("topNew").onclick=createChat;
+$("search").oninput=renderList;
+
+$("themeBtn").onclick=()=>{
+ document.body.classList.toggle("light");
+ localStorage.setItem("alish_theme",document.body.classList.contains("light")?"light":"dark");
 };
 
-document.getElementById('form').onsubmit=async e=>{
- e.preventDefault();
- const text=input.value.trim();
- if(!text&&!selectedImage)return;
- const image=selectedImage;
- input.value='';selectedImage=null;preview.hidden=true;fileInput.value='';
- add('user',text,image);
- const send=document.getElementById('send');
- send.disabled=true;statusText.textContent='Думаю...';
- const contents=chats.slice(-12).map(m=>({
-  role:m.role==='ai'?'model':'user',
-  parts:[
-   ...(m.text?[{text:m.text}]:[]),
-   ...(m.image?[{inlineData:{mimeType:m.image.match(/^data:(image\/[^;]+)/)?.[1]||'image/jpeg',data:m.image.split(',')[1]}}]:[])
-  ]
- }));
+if(localStorage.getItem("alish_theme")==="light"){
+ document.body.classList.add("light");
+}
+
+$("clearBtn").onclick=()=>{
+ if(!confirm("Удалить все чаты?"))return;
+ chats=[];activeId=null;save();renderAll();
+};
+
+$("attach").onclick=()=>$("fileInput").click();
+
+$("fileInput").onchange=async e=>{
+ const files=[...e.target.files];
+ for(const file of files){
+  if(!file.type.startsWith("image/"))continue;
+  if(file.size>5*1024*1024){
+   alert("Фото больше 5 МБ. Выбери фото поменьше.");
+   continue;
+  }
+  const data=await new Promise(resolve=>{
+   const reader=new FileReader();
+   reader.onload=()=>resolve(reader.result);
+   reader.readAsDataURL(file);
+  });
+  pendingImages.push({data,mime:file.type});
+ }
+ renderPreview();
+ e.target.value="";
+};
+
+function renderPreview(){
+ const box=$("preview");
+ box.innerHTML="";
+ pendingImages.forEach((im,i)=>{
+  const item=document.createElement("div");
+  item.className="previewitem";
+  item.innerHTML=`<img src="${im.data}"><button>×</button>`;
+  item.querySelector("button").onclick=()=>{
+   pendingImages.splice(i,1);renderPreview();
+  };
+  box.appendChild(item);
+ });
+}
+
+function resizeInput(){
+ const t=$("input");
+ t.style.height="auto";
+ t.style.height=Math.min(t.scrollHeight,160)+"px";
+}
+$("input").oninput=resizeInput;
+
+$("input").onkeydown=e=>{
+ if(e.key==="Enter"&&!e.shiftKey){
+  e.preventDefault();sendMessage();
+ }
+};
+
+function titleFrom(text){
+ return text.trim().slice(0,40)||"Новый чат";
+}
+
+async function sendMessage(){
+ if(busy)return;
+ const text=$("input").value.trim();
+ if(!text&&!pendingImages.length)return;
+
+ if(!current())createChat();
+ const c=current();
+
+ const parts=[];
+ if(text)parts.push({text});
+ pendingImages.forEach(im=>{
+  parts.push({
+   inlineData:{
+    mimeType:im.mime,
+    data:im.data.split(",")[1]
+   }
+  });
+ });
+
+ c.messages.push({role:"user",parts});
+ if(c.messages.length===1)c.title=titleFrom(text||"Изображение");
+ const imgs=pendingImages.map(im=>({image:im.data}));
+ const displayParts=[...(text?[{text}]:[]),...imgs];
+ c.messages[c.messages.length-1].parts=displayParts;
+
+ $("input").value="";
+ resizeInput();
+ pendingImages=[];
+ renderPreview();
+ save();
+ renderAll();
+
+ busy=true;
+ $("send").disabled=true;
+
+ const typing=document.createElement("div");
+ typing.className="typing";
+ typing.id="typing";
+ typing.textContent="ALISH AI думает...";
+ $("inner").appendChild(typing);
+ $("messages").scrollTop=$("messages").scrollHeight;
+
  try{
-  const response=await fetch('/.netlify/functions/chat',{
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
+  const contents=c.messages.slice(-12).map(m=>({
+   role:m.role,
+   parts:(m.parts||[]).map(p=>{
+    if(p.text)return {text:p.text};
+    if(p.inlineData)return {inlineData:p.inlineData};
+    if(p.image){
+     return {inlineData:{
+      mimeType:p.image.split(";")[0].split(":")[1],
+      data:p.image.split(",")[1]
+     }};
+    }
+    return {text:""};
+   })
+  }));
+
+  const response=await fetch("/.netlify/functions/chat",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
    body:JSON.stringify({contents})
   });
+
   const data=await response.json();
-  if(!response.ok)throw new Error(data.error||'Ошибка сервера '+response.status);
-  const answer=data.text||data.reply||data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if(!answer)throw new Error('Пустой ответ от AI');
-  add('ai',answer);
-  statusText.textContent='Готов к общению';
+  if(!response.ok)throw new Error(data.error||"Ошибка сервера");
+  const answer=data.reply||data.text||data.candidates?.[0]?.content?.parts?.[0]?.text||"Не удалось получить ответ.";
+
+  c.messages.push({role:"model",parts:[{text:answer}]});
  }catch(err){
-  add('ai','Не удалось получить ответ: '+err.message,null,true);
-  statusText.textContent='Ошибка';
+  c.messages.push({role:"model",parts:[{text:"Ошибка: "+err.message+"\nПопробуй отправить сообщение ещё раз."}]});
  }
- send.disabled=false;
-};
-render();
+
+ busy=false;
+ $("send").disabled=false;
+ save();
+ renderAll();
+ $("input").focus();
+}
+
+$("send").onclick=sendMessage;
+
+load();
+renderAll();
 </script>
 </body>
 </html>
