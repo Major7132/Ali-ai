@@ -1,4 +1,4 @@
-onst MODEL = "gemini-3.5-flash-lite";
+const MODEL = "gemini-3.5-flash-lite";
 
 export default async (request) => {
   if (request.method !== "POST") {
