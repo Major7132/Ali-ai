@@ -4,7 +4,7 @@ export default async (request) => {
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
   }
-  const apiKey = Netlify.env.get("GEMINI_API_KEY");
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return new Response(JSON.stringify({ error: "Не задан GEMINI_API_KEY в переменных окружения Netlify." }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
